@@ -38,6 +38,6 @@ Integers y Floats (64 bits).
 
 BigInt (128 bits).
 
-Booleanos (`?T/?F`).
+Booleanos (`?t/?f`).
 
 Dates (ISO 8601).

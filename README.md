@@ -3,40 +3,51 @@
 </p>
 
 <p align="center">
-<img src="https://img.shields.io/badge/version-1.0.0--beta-blue" alt="Version">
-<img src="https://img.shields.io/badge/license-Apache 2.0-orange" alt="License">
+<img src="https://img.shields.io/badge/version-2.0.0-blue" alt="Version">
+<img src="https://img.shields.io/badge/license-Apache 2.0 | MIT-orange" alt="License">
 <img src="https://img.shields.io/badge/format-.ltk-purple" alt="Format">
 </p>
 
-# LYTOK: Arquitectura de símbolos
+# LYTOK: Sintaxis de Alta Densidad(V2.0)
 
 **LYTOK** (Lightweight Token Object Notation) es un estándar de serialización híbrido diseñado para maximizar la eficiencia en el intercambio de datos para Inteligencia Artificial y sistemas de alta concurrencia.
 
-El formato utiliza la extensión oficial .ltk
+El formato utiliza la extensión oficial **.ltk** para textos planos y **.bltk** para binarios.
+
+---
+
+[!CAUTION]
+
+⚠️ Major Update: v2.0 (Breaking Changes)
+
+La versión 2.0 introduce cambios estructurales profundos. Los archivos .ltk creados con versiones anteriores no son compatibles con el nuevo parser universal. Se recomienda migrar a la nueva sintaxis de delimitación inteligente.
 
 ---
 
 ### 💡 ¿Por qué LYTOK?
 
-El mundo se mueve sobre **JSON**, un formato excelente para la legibilidad humana pero costoso para el procesamiento de máquinas y modelos de lenguaje (LLMs). En la era de la IA, cada carácter cuenta:
+En la era de los LLMs, cada carácter cuenta. JSON es excelente para humanos, pero ineficiente para máquinas:
 
-- **Gasto de Contexto:** JSON repite las llaves de los objetos en cada elemento de un arreglo, desperdiciando espacio vital en la ventana de contexto de los modelos.
+- **Ahorro de Contexto:** Al eliminar la repetición de llaves en cada registro, LYTOK reduce drásticamente el consumo de tokens en la ventana de contexto.
+- **Tipado Fuerte Nativo:** Diferencia entre enteros, flotantes, BigInts y fechas sin transformaciones costosas.
+- **Optimización Estructural:** Su diseño permite a los motores de procesamiento implementar estrategias de alta velocidad (como Zero-Allocation) al reducir la ambigüedad y el ruido sintáctico.
 
-- **Ambigüedad de Tipos:** JSON no diferencia nativamente entre un entero y un flotante, ni soporta fechas o BigInts sin transformaciones adicionales que degradan el rendimiento.
+### 🔄 ¿Qué cambió en la v2.0?
 
-LYTOK nace para ser la "destilación" de los datos: mantiene la estructura pero elimina el ruido.
+|     Característica     | v1.x (Legacy) |   v2.0 (Universal)    |
+| :--------------------: | :-----------: | :-------------------: |
+|  Separador de Campos   |  `\|` (Pipe)  |      `,` (Coma)       |
+| Separador de Registros |    `$ / ;`    |  `;` (Punto y coma)   |
+|         Header         | #Schema[N:]:  |     [...] o {...}     |
+|        Strings         | \`Backticks\` |      "Comillas"       |
+|       Versionado       | En el archivo | Universal (Agnóstico) |
 
-### 🏗️ Modos de Operación y Sintaxis
+### 🏗️ Modos de Operación
 
-La sintaxis de LYTOK cambia según la homogeneidad de los datos para maximizar el ahorro de espacio.
+#### 1. Arreglos Uniformes (Colecciones).
 
-#### 1. Arreglos Uniformes (#Schema).
-
-Es el modo de máxima eficiencia. El esquema (Header) define el orden posicional.
-
-**Header con conteo:** `#User[2]:id|nombre::` indica que siguen 2 registros.
-
-**Tipado en Schema:** Las propiedades pueden llevar un símbolo de tipo: `edad#|activo?|`. Si no tiene símbolo, se asume **String**.
+Es el modo de máxima eficiencia. El esquema (Header) se define una vez al inicio.
+**Ejemplo:** `[{id,#edad,activo?}]::` define la estructura para todos los registros siguientes.
 
 #### 2. Arreglos Simples (#, ?, @, &, `)
 
@@ -44,127 +55,112 @@ Para listas de un solo tipo de dato primitivo.
 
 - **Ejemplo (Números):** #1;2;3;4
 
-- **Ejemplo (Fechas):** @2025-01-01:00:00:00Z;2025-02-01:00:00:00Z
+- **Ejemplo (Fechas):** @"2025-01-01:00:00:00Z";"2025-02-01:00:00:00Z"
 
 #### 3. Arreglos Mixtos (\*)
 
-Para datos heterogéneos. Cada valor debe llevar su prefijo de tipo.
+Para datos heterogéneos donde cada valor se auto-identifica.
+**Ejemplo:** `\*#123,?t,un texto,^` (Donde ^ es Null).
 
-**Ejemplo:** `\*#123;?T;texto;^` (Donde `^` es Null).
+---
 
 ### 💎 Tipos de Datos Avanzados
 
 ##### LYTOK soporta nativamente tipos que otros formatos de texto ignoran, garantizando cero pérdida de precisión:
 
-| Símbolo |  Tipo   |                                Regla Técnica                                |
-| :-----: | :-----: | :-------------------------------------------------------------------------: |
-|    #    | Number  | Soporta Integers y Floats (f64) detectados por la presencia del punto `.`.  |
-|    &    | BigInt  |              Soporta enteros de hasta 128 bits sin redondeos.               |
-|    ?    | Boolean |                  Representado por ?T (True) o ?F (False).                   |
-|    @    |  Date   | Obligatorio formato ISO 8601 (YYYY-MM-DDTHH:mm:ss.sssZ) para parseo nativo. |
-|    `    |  Text   |  Encapsulamiento con backticks. Los backticks internos se escapan como ``.  |
-|    ^    |  Null   |                      Representa la ausencia de valor.                       |
+| Símbolo |  Tipo   |                                     Regla Técnica                                     |
+| :-----: | :-----: | :-----------------------------------------------------------------------------------: |
+|    #    | Number  |         Soporta Integers y Floats detectados por la presencia del punto `.`.          |
+|    &    | BigInt  |                          Soporta enteros de hasta 128 bits.                           |
+|    ?    | Boolean |                     Representado por `?t` (True) o `?f` (False).                      |
+|    @    |  Date   |      Obligatorio formato ISO 8601 (YYYY-MM-DDTHH:mm:ss.sssZ) para parseo nativo.      |
+|    `    |  Text   | Encapsulamiento con comillas. Escapes internos como `""` y saltos de línea como `\n.` |
+|    ^    |  Null   |                           Representa la ausencia de valor.                            |
+|   \*    |  Mixed  |          Permite que el campo acepte cualquier tipo soportado dinámicamente.          |
 
-### 📏 Reglas de Indentación y Formato
+### 📏 Reglas de Estructura y autodelimitación
 
-Cuando se utiliza el modo **Formatted** (`formatted: true`), se aplican las siguientes reglas para mantener la legibilidad:
+**1. Separadores Estructurales:**
 
-**1. Generalidad:**
+- **`,`:** Separador de campos (opcional si hay autodelimitación).
+- **`;`:** Separador de registros o elementos en arreglos.
+- **`::`:** Delimitador que separa el Esquema (Header) de la Data.
 
-- **Indentación:** 4 espacios por nivel (formatted).
+**2. Autodelimitación (Ahorro de Bytes):** LYTOK permite omitir la coma , cuando el cambio de tipo es inequívoco:
 
-- **Recursividad:** Soporte total de mapas dentro de arreglos y viceversa.
+- **Strings ("..."):** El cierre de comillas actúa como delimitador.
+- **Estructuras ({} []):** Las llaves y corchetes marcan el inicio/fin de bloques.
+- **Nulidad (^):** El motor identifica el nulo instantáneamente.
 
-- **Manejo de espacios:** En los textos, los espacios dentro de los delimitadores son respetados de forma nativa.
+**3. Formato y Escapes:**
 
-- **Registros raíz:** El esquema uniforme indica la cantidad total: `#lote[2]`.
+- Los strings complejos usan `"`. Si un string contiene una comilla, se escapa duplicándola: `"Dijo ""Hola"""`.
+- Los saltos de línea se representan con el escape literal `\n`.
 
-- **Conteo en arreglos anidados:** Inician con el número de registros y un delimitador: `[2|`. El número está al nivel del bracket de apertura, mientras que los datos siguen la indentación.
-
-**2. Separadores Estructurales:**
-
-- `|` : Separador de campos en Mapas/Objetos.
-
-- `;\n` : Separador de registros en Arreglos de nivel superior para arreflos formatted.
-
-- `;` : Separador de elementos en Arreglos de nivel superior para arreglos minified.
-
-- `$` : Separador de elementos en Arreglos anidados.
-
-**3. Auto-delimitación:**
-
-Ciertos valores permiten omitir el separador estructural (| o $) para ahorrar espacio:
-
-- **Strings (\`texto\`):** Son aquellos encerrados entre ` `` `, al estar encapsulados, el formato puede omitir el separador de estructural (`|` o `$`) según sea el caso.
-
-- **Bloque (`{}` `[]`):** Al ser delimitadores que marcan el inicio o fin de un objeto/arreglo, estos permiten la omision del separador estructural.
-
-- **Nulidad (`^`):** Al ser un simbolo que refleja un valor nulo directo, no es necesario estar delimitado, cuando el interpretador detecte el simbolo, regresa de forma inmediata un nulo.
-
-- **Excepción:** Si hay dos campos de texto escapados consecutivos, el delimitador `|` es obligatorio.
-
-#### Ejemplo Formateado Complejo:
+#### Ejemplo Complejo (V2.0):
 
 ```Text
-#lote[2]:
-  id|fecha|stock_total#|es_importado?|es_certificado?|fabricante{
-    nombre|registro|direccion{
-      calle|ciudad|zip#
-    }
-  }|datosLaboratorio{
-    fecha_prueba|direccion{
-      calle|edificio|referencia
-    }
-  }|certificaciones[
-    nombre_cert|valida_hasta
-  ]|sucursales[
-    nombre|ciudad|empleados[
-      nombre|apellido|datos{
-        calle|numero#|telefono#|correo
-      }
-    ]
-  ]::
-`L|001`2025-11-20|50000|F|T{
-    Acme Corp|0123456789{
-        Calle Falsa 123|Springfield|62000
-    }
-}^[2|
-    ISO-9001|2026-01-01$CQC-A|2027-05-15
-][2|
-    suc-52|La Paz[2|
-        Maria|Perez{
-            calle imaginaria|520|6489635672|maria.perez@mail.com
-        }$`Eusebio;`Mendez{
-            calle imaginaria sur|580|6489635652|eusebio.m@mail.com
+[
+    id,fecha,#stock_total,?es_importado,?es_certificado,fabricante{
+        nombre,*registro,direccion{
+            calle,ciudad,#zip
         }
-    ]$suc-105|Tepito^
+    },datosLaboratorio{
+        fecha_prueba,direccion{
+            calle,edificio,referencia
+        }
+    },certificaciones[
+        nombre_cert,valida_hasta
+    ],sucursales[
+        nombre,ciudad,empleados[
+            nombre,apellido,datos{
+                calle,#numero,#telefono,correo
+            }
+        ]
+    ]]::
+L|001,2025-11-20,50000,f,t{
+    Acme Corp,0123456789{
+        Calle Falsa 123,Springfield,62000
+    }
+}^[
+    ISO-9001,2026-01-01;
+    CQC-A,2027-05-15
+][
+    suc-52,La Paz[
+        Maria,Perez{
+            calle imaginaria,520,6489635672,maria.perez@mail.com
+        };
+        "Eusebio;"Mendez{
+            calle imaginaria sur,580,6489635652,eusebio.m@mail.com
+        }
+    ];
+    suc-105,Tepito^
 ];
-L002|2025-11-20|15000|T|F{
-    Industrias Z|987654321{
-        Av. Siempre Viva 742|CDMX|90210
+L002,2025-11-20,15000,t,f{
+    Industrias Z,#987654321{
+        Av. Siempre Viva 742,CDMX,90210
     }
 }{
     2025-11-25{
-        Rio Tiber|Torre Central|2ndo piso
+        Rio Tiber,Torre Central,2ndo piso
     }
-}[2|
-    ISO-9001|2026-01-01$Cert_MX_IM|2026-01-01
+}[
+    ISO-9001,2026-01-01;
+    Cert_MX_IM,2026-01-01
 ]^
 ```
 
 ### 📂 Estructura del Proyecto
 
-- `/spec`: Gramática formal EBNF que define las reglas de autodelimitación.
+- `/spec`: Gramática formal EBNF V2.0.
 
-- `/compliance`: El Test Suite oficial para validar parsers de terceros.
+- `/compliance`: El Test Suite oficial para validacion de parsers.
 
-- `/assets`: Identidad visual y diagramas de flujo de datos.
-
-- `/examples`: Archivos .ltk con casos de uso reales.
+- `/assets`: Identidad visual y logotipos.
 
 ### SDK's disponibles
 
-- #### [JS](https://github.com/Joguel96/lytok-js)
+- #### [JS/TS](https://github.com/Joguel96/lytok-js)
 
 ---
 

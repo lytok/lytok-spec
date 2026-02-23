@@ -1,5 +1,5 @@
-(* LYTOK (Compact Object Data Native Notation)
-Formal Grammar Specification v1.0
+(* LYTOK (Lightweigth Token Object Notation)
+Formal Grammar Specification v2.0
 *)
 lytok_document
        = uniform_collection
@@ -12,25 +12,31 @@ uniform_collection
        = uniform_header, separador_schema_data, [ newline ], uniform_body;
 
 simple_collection
-       = type_symbol, simple_body
-       | type_symbol, [ newline ], simple_body;
+       = type_symbol, [ newline ], simple_body;
 
 mixed_collection
-       = mixed_symbol, mixed_body
-       | mixed_symbol, [ newline ], mixed_body;
+       = mixed_symbol, [ newline ], mixed_body;
 
-(* --- Estructura del Header Uniform --- *)
+(* --- Header (Definición de Esquema) --- )
+( Soporta: [{fields}] y {fields} *)
 uniform_header
-       = "#", identifier, [ "[", integer, "]" ], ":", [ newline ], fields;
+       = array_header
+       | object_header;
+
+array_header
+       = "[", object_header, "]";
+
+object_header
+       = "{", fields, "}";
 
 fields
-       = field, { "|", field };
+       = field, { ",", field };
 
 arr_fields
-       = field, { "$", field };
+       = field, { ";", field };
 
 field
-       = identifier, [ type_symbol ], [ map_definition
+       = [ type_symbol ], identifier, [ map_definition
        | array_definition ];
 
 map_definition
@@ -51,9 +57,10 @@ uniform_separator
        = ";"
        | ( [ whitespace ], newline, [ whitespace ], "-", [ whitespace ], newline );
 
+(* Autodelimitación: Si un valor está entre comillas, corchetes, llaves o es nulo (^), no requiere comas para separarse de campos adyacentes *)
 uniform_row
        = value
-       | [ whitespace ], value, { "|", [ whitespace ], value };
+       | [ whitespace ], value, { ",", [ whitespace ], value };
 
 (* Arreglos Simples: #val1;val2... *)
 simple_body
@@ -105,8 +112,8 @@ null_value
        = "^";
 
 boolean
-       = "?T"
-       | "?F"
+       = "?t"
+       | "?f"
        | "?true"
        | "?false";
 
@@ -125,8 +132,8 @@ text
        | plain_text;
 
 quoted_text
-       = "`", { "``"
-       | any_char_except_backtick }, "`";
+       = '"', { '""'
+       | any_char_except_quote }, '"';
 
 plain_text
        = { any_char_except_delimiters };
@@ -136,22 +143,19 @@ map_instance
        = "{", [ newline ], map_content, [ newline ], [ whitespace ], "}";
 
 map_content
-       = [ whitespace ], identifier, ":", value, { ( "|"
+       = [ whitespace ], identifier, ":", value, { ( ","
        | newline ), [ whitespace ], identifier, ":", value };
 
 array_instance
-       = "[", [ integer, "|" ], [ newline ], array_content, [ newline ], [ whitespace ], "]";
+       = "[", [ integer, "," ], [ newline ], array_content, [ newline ], [ whitespace ], "]";
 
 array_content
-       = [ whitespace ], value, { ( "$"
+       = [ whitespace ], value, { ( ","
        | newline ), [ whitespace ], value };
 
 (* --- Terminales y Símbolos --- *)
 separador_schema_data
        = "::";
-
-sub_array_delimiter
-       = "$";
 
 root_array_delimiter
        = ";"
@@ -241,8 +245,8 @@ newline
        = "\n"
        | "\r\n";
 
-any_char_except_backtick
-       = ? cualquier carácter Unicode ? - "`";
+any_char_except_quote
+       = ? cualquier carácter Unicode ? - '"';
 
 iso_8601_string
        = year, "-", month, "-", day, [ "T", hour, ":", minute, ":", second, [ ".", millis ], "Z" ];
