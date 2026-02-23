@@ -159,7 +159,7 @@ separador_schema_data
 
 root_array_delimiter
        = ";"
-       | "\n-\n";
+       | ";\n";
 
 mixed_symbol
        = "*";
